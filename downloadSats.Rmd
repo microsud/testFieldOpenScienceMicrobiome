@@ -1,0 +1,114 @@
+---
+title: "Microbiome and Phyloseq Download Stats"
+author: "Sudarshan"
+date: "2/22/2021"
+output: html_document
+---
+
+
+**An overview of download stats for Microbiome and Phyloseq R pacakges fetched from BioConductor**  
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+```
+
+
+## Microbiome R pkg   
+Downloaded stats from [BioConductor](https://bioconductor.org/packages/release/BiocViews.html#___Software) on 22 Feb 2021.  
+```{r message=FALSE}
+
+microbiome_stats_2019 <- read_delim("data/microbiome_2019_stats.tab",
+                                    delim = "\t") %>% 
+  mutate(Package= "Microbiome",
+         Year = "2019")
+
+microbiome_stats_2020 <- read_delim("data/microbiome_2020_stats.tab",
+                                    delim = "\t") %>% 
+  mutate(Package= "Microbiome",
+         Year = "2020")
+
+microbiome_stats <- bind_rows(microbiome_stats_2019,
+                              microbiome_stats_2020)
+```
+
+
+## Phyloseq R pkg    
+Downloaded stats from BioConductor on 22 Feb 2021.  
+```{r message=FALSE}
+phyloseq_stats_2019 <- read_delim("data/phyloseq_2019_stats.tab",
+                                  delim = "\t") %>% 
+  mutate(Package= "Phyloseq",
+         Year = "2019")
+
+phyloseq_stats_2020 <- read_delim("data/phyloseq_2020_stats.tab",
+                                  delim = "\t") %>% 
+  mutate(Package= "Phyloseq",
+         Year = "2020")
+
+phyloseq_stats <- bind_rows(phyloseq_stats_2019,
+                            phyloseq_stats_2020)
+
+```
+
+
+## Merge Microbiome and Phyloseq data  
+
+```{r}
+stats_df <- bind_rows(microbiome_stats, phyloseq_stats)
+
+stats_df %>% 
+  filter(Month !="all") %>% 
+  mutate(Package_Year = paste0(Package,Year)) %>% 
+ggplot(aes(Month, Nb_of_distinct_IPs)) +
+  geom_point(aes(color= Package), size=2, alpha=0.5) +
+  geom_line(aes(color=Package, group=Package_Year, linetype = Package_Year)) +
+  #facet_grid(~Package) +
+  theme_bw() +
+  ylim(0, 5000) +
+  ylab("No. of distinct IPs")
+```
+
+```{r}
+safe_colorblind_palette <- c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+                             "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")
+#scales::show_col(safe_colorblind_palette)
+```
+
+
+```{r}
+stats_df2 <- stats_df %>% 
+  filter(Month !="all") %>% 
+  mutate(Package_Year = paste0(Package, "-",Year)) %>%
+  group_by(Package_Year) %>%
+  mutate(CumulativeCount = cumsum(Nb_of_distinct_IPs),
+         MonthNum = ifelse(Month== "Jan", 01,
+                           ifelse(Month== "Feb", 02,
+                                  ifelse(Month== "Mar", 03,
+                                         ifelse(Month== "Apr", 04,
+                                                ifelse(Month== "May", 05,
+                                                       ifelse(Month== "Jun", 06,
+                                                              ifelse(Month== "Jul", 07,
+                                                                     ifelse(Month== "Aug", 08,
+                                                                            ifelse(Month== "Sep", 09,
+                                                                                   ifelse(Month== "Oct", 10,
+                                                                                          ifelse(Month== "Nov", 11,
+                                                                                                 ifelse(Month== "Dec", 12, NA)))))))))))))
+
+```
+## Plot  
+```{r fig.width=8, fig.height=4}
+ggplot(stats_df2) +
+  geom_col(aes(y=CumulativeCount, 
+               x=reorder(Month,MonthNum), 
+               fill=Package_Year), 
+           position=position_dodge2()) +
+  theme_bw() +
+  scale_fill_manual(values = safe_colorblind_palette) +
+  ylab("No. of distinct IPs \n(Cummulative)") +
+  xlab("Month")
+```
+
+```{r}
+sessionInfo()
+```
+
